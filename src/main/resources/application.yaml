@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: leviOMSOrder-publish-order-enhancer-gcp-extn
+
+  cloud:
+    gcp:
+      project-id: my-gcp-project-id # TODO: Replace with your actual GCP project ID
+      credentials:
+        location: file:/path/to/your/service-account-key.json # TODO: Replace with the actual path to your service account key
+      pubsub:
+        subscriptions:
+          subscription-one:
+            topic: topic-one # TODO: Replace with your subscription and corresponding topic names
+        topics:
+          topic-two:
+          # Additional configurations for topic-two can be added here if needed
+
+  main:
+    allow-bean-definition-overriding: true
+
+logging:
+  level:
+    org.springframework.cloud.gcp.pubsub: DEBUG # Set to DEBUG for detailed logging during development; consider INFO or WARN in production
+server:
+  port: 8080
