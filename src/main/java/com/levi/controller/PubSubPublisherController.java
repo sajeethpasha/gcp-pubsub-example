@@ -1,51 +1,78 @@
 package com.levi.controller;
 
-import com.google.cloud.spring.pubsub.core.PubSubTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.cloud.gcp.pubsub.core.PubSubTemplate;
+import com.google.cloud.pubsub.v1.Publisher;
+import com.google.protobuf.ByteString;
+import com.google.pubsub.v1.ProjectTopicName;
+import com.google.pubsub.v1.PubsubMessage;
+//import com.levi.model.PubSubPublishRequest;
+import com.levi.models.PubSubPublishRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequestMapping("/publish")
+@RequestMapping("/publisher")
 public class PubSubPublisherController {
 
-    private static final Logger LOGGER = Logger.getLogger(PubSubPublisherController.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(PubSubPublisherController.class);
 
-    @Autowired
-    private PubSubTemplate pubSubTemplate;
+    @Value("${spring.cloud.gcp.project-id}")
+    private String projectId;
 
     /**
-     * Endpoint to publish a message to topic-two.
+     * Endpoint to publish a message to a specified Pub/Sub topic.
      *
-     * @param message The message to publish
-     * @return Response indicating the status of the publishing operation
+     * @param request The request object containing the topic and message.
+     * @return A response indicating success or failure.
      */
-    @PostMapping
-    public String publishMessage(@RequestParam String message) {
-        LOGGER.log(Level.INFO, "Received request to publish message: {0}", message);
+    @PostMapping("/publish")
+    public ResponseEntity<String> publishMessage(@RequestBody PubSubPublishRequest request) {
+        Publisher publisher = null;
 
-        // Validate the message content
-        if (message == null || message.trim().isEmpty()) {
-            LOGGER.log(Level.SEVERE, "Invalid message content: {0}", message);
-            return "Failed to publish: message is invalid or empty.";
+        try {
+            // Validate input
+            if (request.getTopic() == null || request.getTopic().isEmpty()) {
+                return ResponseEntity.badRequest().body("Topic must not be empty");
+            }
+            if (request.getMessage() == null || request.getMessage().isEmpty()) {
+                return ResponseEntity.badRequest().body("Message must not be empty");
+            }
+
+            // Build the topic name dynamically
+            ProjectTopicName topicName = ProjectTopicName.of(projectId, request.getTopic());
+
+            // Create the publisher
+            publisher = Publisher.newBuilder(topicName).build();
+
+            // Create the Pub/Sub message
+            PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                    .setData(ByteString.copyFromUtf8(request.getMessage()))
+                    .build();
+
+            // Publish the message
+            publisher.publish(pubsubMessage).get();
+            logger.info("Message published to topic: {}", request.getTopic());
+
+            return ResponseEntity.ok("Message published to topic: " + request.getTopic());
+        } catch (Exception e) {
+            logger.error("Failed to publish message to topic: {}", request.getTopic(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to publish message: " + e.getMessage());
+        } finally {
+            // Clean up the publisher
+            if (publisher != null) {
+                try {
+                    publisher.shutdown();
+                    publisher.awaitTermination(10, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    logger.error("Error shutting down publisher for topic: {}", request.getTopic(), e);
+                }
+            }
         }
-
-        // Publish the message to topic-two using CompletableFuture
-        LOGGER.log(Level.INFO, "Publishing message to topic-two...");
-        CompletableFuture.supplyAsync(() -> pubSubTemplate.publish("topic-two", message))
-                .thenAccept(result -> {
-                    LOGGER.log(Level.INFO, "Message published successfully to topic-two with ID: {0}", result);
-                })
-                .exceptionally(ex -> {
-                    LOGGER.log(Level.SEVERE, "Failed to publish message to topic-two: {0}", ex.getMessage());
-                    return null;
-                });
-
-        LOGGER.log(Level.INFO, "Publish request for message: {0} has been initiated.", message);
-        return "Message publishing initiated for topic-two.";
     }
 }

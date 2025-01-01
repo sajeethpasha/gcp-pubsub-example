@@ -1,14 +1,21 @@
-# Use a lightweight JDK base image
-FROM eclipse-temurin:21-jdk-alpine
+# Use an official OpenJDK runtime as a parent image
+FROM openjdk:17-jdk-alpine
+
+# Set environment variables
+ENV PORT=8080
+
+# Add a volume pointing to /tmp
+VOLUME /tmp
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the JAR file into the container
-COPY build/libs/leviOMSOrder-publish-order-enhancer-gcp-extn-0.0.1-SNAPSHOT.jar app.jar
+# Copy the application's JAR to the container
+ARG JAR_FILE=build/libs/leviOMSOrder-0.0.1-SNAPSHOT.jar
+COPY ${JAR_FILE} app.jar
 
-# Expose the port the app runs on
+# Expose port
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the jar file
+ENTRYPOINT ["java","-jar","app.jar"]

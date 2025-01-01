@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class LeviOmsOrderPublishOrderEnhancerGcpExtnApplicationTests {
+class LeviOmsOrderApplicationTests {
 
 	@Test
 	void contextLoads() {

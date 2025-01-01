@@ -6,13 +6,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class LeviOmsOrderPublishOrderEnhancerGcpExtnApplication {
+public class LeviOmsOrderApplication {
 
 	@Value("${PORT:8080}")
 	private String port;
 
 	public static void main(String[] args) {
-		SpringApplication.run(LeviOmsOrderPublishOrderEnhancerGcpExtnApplication.class, args);
+		SpringApplication.run(LeviOmsOrderApplication.class, args);
 	}
 
 
